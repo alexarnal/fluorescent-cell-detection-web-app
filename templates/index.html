@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Density Estimation</title>
+
+{% endblock %}
+
+{% block body %} 
+<br><br>
+<div class="container">
+    <div class="jumbotron">
+        <h1>Estimating Cell Density</h1>
+        <p>This application takes an SVG file of circle objects and estimates the density of the objects' coordinates. It then outputs the density map as an SVG file for download.</p>
+        
+        {% if download == False %}
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <input type="file" name="SVG" id="SVG" accept=".svg" >
+            <br>
+            <button type="submit" class="btn btn-warning">Run</button> <!-- id="compute" onclick="getDensityMap()" -->
+        </form>
+        <br><br>
+        {% else %}
+        <form action="/" method="GET">
+            <button type="submit"  class="btn btn-link"><a href="{{url_for('download_file')}}">Download</a></button>
+        </form>
+        <br><br>
+        {% endif  %}
+        <div class="embed-responsive embed-responsive-16by9" >
+            <iframe class="embed-responsive-item" src="https://player.vimeo.com/video/505908696"  frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <br>
+    </div>
+</div>
+<br><br>
+{% endblock %}
+
