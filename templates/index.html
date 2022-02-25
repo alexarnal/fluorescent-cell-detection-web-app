@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>Density Estimation</title>
+<title>Cell Detection</title>
 
 {% endblock %}
 
@@ -9,12 +9,12 @@
 <br><br>
 <div class="container">
     <div class="jumbotron">
-        <h1>Estimating Cell Density</h1>
-        <p>This application takes an SVG file of circle objects and estimates the density of the objects' coordinates. It then outputs the density map as an SVG file for download.</p>
+        <h1>Fluorescent Cell Detection</h1>
+        <p>This application takes a PNG or TIFF file of fluorescent cells and marks cell locations. It then outputs the cell locations as an SVG file for download.</p>
         
         {% if download == False %}
         <form action="/" method="POST" enctype="multipart/form-data">
-            <input type="file" name="SVG" id="SVG" accept=".svg" >
+            <input type="file" name="image" id="image" accept=".tiff" >
             <br>
             <button type="submit" class="btn btn-warning">Run</button> <!-- id="compute" onclick="getDensityMap()" -->
         </form>
