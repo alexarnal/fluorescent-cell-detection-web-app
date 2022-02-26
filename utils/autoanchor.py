@@ -8,7 +8,7 @@ import random
 import numpy as np
 import torch
 import yaml
-from tqdm import tqdm
+#from tqdm import tqdm
 
 from utils.general import LOGGER, colorstr, emojis
 
@@ -24,7 +24,7 @@ def check_anchor_order(m):
         LOGGER.info(f'{PREFIX}Reversing anchor order')
         m.anchors[:] = m.anchors.flip(0)
 
-
+'''
 def check_anchors(dataset, model, thr=4.0, imgsz=640):
     # Check anchor fit to data, recompute if necessary
     m = model.module.model[-1] if hasattr(model, 'module') else model.model[-1]  # Detect()
@@ -162,3 +162,4 @@ def kmean_anchors(dataset='./data/coco128.yaml', n=9, img_size=640, thr=4.0, gen
                 print_results(k, verbose)
 
     return print_results(k)
+'''
