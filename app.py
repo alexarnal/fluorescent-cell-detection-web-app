@@ -78,7 +78,7 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 
-@torch.no_grad()
+#@torch.no_grad()
 def detect():
     weights=ROOT / 'best.pt',  # model.pt path(s)
     source=ROOT / 'slices',  # file/dir/URL/glob, 0 for webcam
@@ -370,8 +370,6 @@ class ToDo(db.Model):
 
     def __repr__(self):
         return '<Tsk %r>' %self.id
-
-
 
 @app.route('/', methods=['POST','GET']) #GET is default without this method parameter
 def index():
