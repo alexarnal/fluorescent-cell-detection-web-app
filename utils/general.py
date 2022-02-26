@@ -21,7 +21,7 @@ from pathlib import Path
 from subprocess import check_output
 from zipfile import ZipFile
 
-import cv2
+#import cv2
 import numpy as np
 import pandas as pd
 import pkg_resources as pkg
@@ -29,7 +29,7 @@ import torch
 import torchvision
 import yaml
 
-from utils.downloads import gsutil_getsize
+#from utils.downloads import gsutil_getsize
 from utils.metrics import box_iou, fitness
 
 # Settings
@@ -41,7 +41,7 @@ VERBOSE = str(os.getenv('YOLOv5_VERBOSE', True)).lower() == 'true'  # global ver
 torch.set_printoptions(linewidth=320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
 pd.options.display.max_columns = 10
-cv2.setNumThreads(0)  # prevent OpenCV from multithreading (incompatible with PyTorch DataLoader)
+#cv2.setNumThreads(0)  # prevent OpenCV from multithreading (incompatible with PyTorch DataLoader)
 os.environ['NUMEXPR_MAX_THREADS'] = str(NUM_THREADS)  # NumExpr max threads
 
 
@@ -185,14 +185,14 @@ def is_docker():
     return Path('/workspace').exists()  # or Path('/.dockerenv').exists()
 
 
-def is_colab():
+'''def is_colab():
     # Is environment a Google Colab instance?
     try:
         import google.colab
         return True
     except ImportError:
         return False
-
+'''
 
 def is_pip():
     # Is file in a pip package?
@@ -322,7 +322,7 @@ def check_img_size(imgsz, s=32, floor=0):
     return new_size
 
 
-def check_imshow():
+'''def check_imshow():
     # Check if environment supports image displays
     try:
         assert not is_docker(), 'cv2.imshow() is disabled in Docker environments'
@@ -335,7 +335,7 @@ def check_imshow():
     except Exception as e:
         LOGGER.warning(f'WARNING: Environment does not support cv2.imshow() or PIL Image.show() image displays\n{e}')
         return False
-
+'''
 
 def check_suffix(file='yolov5s.pt', suffix=('.pt',), msg=''):
     # Check file(s) for acceptable suffix
@@ -766,7 +766,7 @@ def strip_optimizer(f='best.pt', s=''):  # from utils.general import *; strip_op
     LOGGER.info(f"Optimizer stripped from {f},{(' saved as %s,' % s) if s else ''} {mb:.1f}MB")
 
 
-def print_mutation(results, hyp, save_dir, bucket):
+'''def print_mutation(results, hyp, save_dir, bucket):
     evolve_csv, results_csv, evolve_yaml = save_dir / 'evolve.csv', save_dir / 'results.csv', save_dir / 'hyp_evolve.yaml'
     keys = ('metrics/precision', 'metrics/recall', 'metrics/mAP_0.5', 'metrics/mAP_0.5:0.95',
             'val/box_loss', 'val/obj_loss', 'val/cls_loss') + tuple(hyp.keys())  # [results + hyps]
@@ -803,8 +803,8 @@ def print_mutation(results, hyp, save_dir, bucket):
 
     if bucket:
         os.system(f'gsutil cp {evolve_csv} {evolve_yaml} gs://{bucket}')  # upload
-
-
+'''
+'''
 def apply_classifier(x, model, img, im0):
     # Apply a second stage classifier to YOLO outputs
     # Example model = torchvision.models.__dict__['efficientnet_b0'](pretrained=True).to(device).eval()
@@ -839,7 +839,7 @@ def apply_classifier(x, model, img, im0):
             x[i] = x[i][pred_cls1 == pred_cls2]  # retain matching class detections
 
     return x
-
+'''
 
 def increment_path(path, exist_ok=False, sep='', mkdir=False):
     # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
