@@ -13,7 +13,7 @@ from pathlib import Path
 
 #import cv2
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import requests
 import torch
 import torch.nn as nn
@@ -24,7 +24,7 @@ from torch.cuda import amp
 from utils.datasets import exif_transpose, letterbox
 from utils.general import (LOGGER, check_requirements, check_suffix, check_version, colorstr, increment_path,
                            make_divisible, non_max_suppression, scale_coords, xywh2xyxy, xyxy2xywh)
-from utils.plots import Annotator, colors, save_one_box
+#from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import copy_attr, time_sync
 
 
@@ -462,7 +462,7 @@ class DetectMultiBackend(nn.Module):
                 im = torch.zeros(*imgsz).to(self.device).type(torch.half if half else torch.float)  # input image
                 self.forward(im)  # warmup
 
-
+'''
 class AutoShape(nn.Module):
     # YOLOv5 input-robust model wrapper for passing cv2/np/PIL/torch inputs. Includes preprocessing, inference and NMS
     conf = 0.25  # NMS confidence threshold
@@ -650,7 +650,7 @@ class Detections:
 
     def __len__(self):
         return self.n
-
+'''
 
 class Classify(nn.Module):
     # Classification head, i.e. x(b,c1,20,20) to x(b,c2)
