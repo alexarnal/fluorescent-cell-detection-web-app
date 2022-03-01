@@ -16,7 +16,7 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from glob import glob'''
 
-#slice
+'''#slice
 import matplotlib.pyplot as plt
 import numpy as np
 import shutil
@@ -59,13 +59,13 @@ def slice(fileName):
             cv2.imwrite(imageName, image[frm[0]:frm[1],frm[2]:frm[3]])  #plt.imsave(processedDir + imageName + '.png',image[frm[0]:frm[1],frm[2]:frm[3]]) #, cmap='gray')
             indx+=1
             #print(indx)
-
+'''
 
 
 #detect
 from detection.detect import run
 
-#stitch
+'''#stitch
 #import matplotlib.pyplot as plt
 #import numpy as np
 #import shutil
@@ -93,7 +93,7 @@ def getYOLODataFromTXT(fileName,scale):
 def startSVG(fileName,dims):
     f = open(fileName+".svg", "w")
     f.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s">\n'%(dims[0], dims[1]))
-    f.write('<rect width="%s" height="%s" style="fill:none"/>\n'%(dims[0], dims[1]))
+    f.write('<rect width="%s" height="%s" style="fill:none; stroke-width:1px"/>\n'%(dims[0], dims[1]))
     f.close()
 
 def saveCoordsSVG(x,y,fileName,indx): 
@@ -163,22 +163,19 @@ def stitch(inFileName):
         #if valCount == 10: break
     endSVG(processedDir + "stitched")
 
-    print("Done!")
+    print("Done!")'''
 
 #main
 def predict(inFileName):
-    print("\n\n\n\ninside prediction")
-    slice(inFileName)
-    print("\n\n\n\nimage has been split")
-    run(weights='detection/best.pt', source="slices/", imgsz=(256,256), save_txt=True, save_conf=True, project='')
+    print(f"\n\n\n\nRunning Prediction on {inFileName}")
+    run(weights='detection/best.pt', source=inFileName, project='')
     print("\n\n\n\nfinished predicting")
-    stitch(inFileName)
-    print("\n\n\n\nfinished stitching predictions")
     
 
 app= Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db' #4/is absolute path
 app.config['IMAGE_UPLOADS'] = 'uploads' #4/is absolute path
+app.config['OUTPUT_NAME'] = 'output'
 #MYDIR = os.path.dirname(__file__)
 #print("\n\n\n"+MYDIR+"this one <-----\n\n\n")
 
@@ -203,7 +200,7 @@ def index():
         if request.files:
             image = request.files['image'] #this is where you get the python input with id content
             image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))#svg.filename))
-            
+            app.config['OUTPUT_NAME'] = image.filename[:-4]
             try:
                 inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
                 #outFileName = os.path.join(app.config['IMAGE_UPLOADS'],'output.svg')
@@ -229,7 +226,7 @@ def index():
     
 @app.route('/download')
 def download_file():
-    p = os.path.join('stitched','stitched.svg')
+    p = os.path.join(app.config['IMAGE_UPLOADS'],app.config['OUTPUT_NAME']+'.svg')
     return send_file(p,as_attachment=True)
 
 
