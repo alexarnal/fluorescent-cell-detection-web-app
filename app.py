@@ -169,11 +169,11 @@ def stitch(inFileName):
 from rq import Queue
 from worker import conn
 
-q = Queue(connection=conn)
+#q = Queue(connection=conn)
 
 def predict(inFileName):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
-    q.enqueue(run,weights='detection/best.pt', source=inFileName, project='')
+    run(weights='detection/best.pt', source=inFileName, project='')#q.enqueue(run,weights='detection/best.pt', source=inFileName, project='')
     print("\n\n\n\nfinished predicting")
     
 
@@ -231,7 +231,7 @@ def index():
     
 @app.route('/download')
 def download_file():
-    p = os.path.join('../uploads',app.config['OUTPUT_NAME']+'.svg')
+    p = os.path.join('uploads',app.config['OUTPUT_NAME']+'.svg')
     return send_file(p,as_attachment=True)
 
 
