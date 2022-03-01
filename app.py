@@ -181,6 +181,7 @@ app= Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db' #4/is absolute path
 app.config['IMAGE_UPLOADS'] = 'uploads' #4/is absolute path
 app.config['OUTPUT_NAME'] = 'output'
+app.config['WORKER_DYNO'] = 'redis://redistogo:685caa9f481ac58d55a51c8a62a129c1@sole.redistogo.com:9855/'
 #MYDIR = os.path.dirname(__file__)
 #print("\n\n\n"+MYDIR+"this one <-----\n\n\n")
 
@@ -204,12 +205,12 @@ def index():
     if request.method == 'POST':
         if request.files:
             image = request.files['image'] #this is where you get the python input with id content
-            image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))#svg.filename))
+            image.save(os.path.join(app.config['WORKER_DYNO'],app.config['IMAGE_UPLOADS'],image.filename))#svg.filename))
             app.config['OUTPUT_NAME'] = image.filename[:-4]
             try:
-                inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
+                inFileName = os.path.join(app.config['WORKER_DYNO'],app.config['IMAGE_UPLOADS'],image.filename)
                 #outFileName = os.path.join(app.config['IMAGE_UPLOADS'],'output.svg')
-                predict('../'+inFileName)
+                predict(inFileName)
                 #return redirect(request.url)
                 download=True
             except:
@@ -231,7 +232,7 @@ def index():
     
 @app.route('/download')
 def download_file():
-    p = os.path.join('uploads',app.config['OUTPUT_NAME']+'.svg')
+    p = os.path.join(app.config['WORKER_DYNO'],'uploads',app.config['OUTPUT_NAME']+'.svg')
     return send_file(p,as_attachment=True)
 
 
