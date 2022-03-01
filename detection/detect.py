@@ -93,7 +93,9 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         ):
     save_svg=True
     source = str(source)
+    print(source)
     refImg = cv2.imread(source)
+    print(refImg.shape)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
     is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
