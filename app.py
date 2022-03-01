@@ -169,11 +169,11 @@ def stitch(inFileName):
 from rq import Queue
 from worker import conn
 
-#q = Queue(connection=conn)
+q = Queue(connection=conn)
 
 def predict(inFileName):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
-    run(weights='detection/best.pt', source=inFileName, project='')#q.enqueue(run,weights='detection/best.pt', source=inFileName, project='')
+    q.enqueue(run,weights='detection/best.pt', source=inFileName, project='') #run(weights='detection/best.pt', source=inFileName, project='')#
     print("\n\n\n\nfinished predicting")
     
 
