@@ -209,7 +209,7 @@ def index():
             try:
                 inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
                 #outFileName = os.path.join(app.config['IMAGE_UPLOADS'],'output.svg')
-                predict(inFileName)
+                predict('../'+inFileName)
                 #return redirect(request.url)
                 download=True
             except:
