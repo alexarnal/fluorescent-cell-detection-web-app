@@ -231,7 +231,7 @@ def index():
     
 @app.route('/download')
 def download_file():
-    p = os.path.join(app.config['IMAGE_UPLOADS'],app.config['OUTPUT_NAME']+'.svg')
+    p = os.path.join('uploads',app.config['OUTPUT_NAME']+'.svg')
     return send_file(p,as_attachment=True)
 
 
