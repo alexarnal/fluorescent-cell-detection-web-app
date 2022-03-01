@@ -168,12 +168,22 @@ def stitch(inFileName):
 #main
 from rq import Queue
 from worker import conn
+import cv2
+import time
+
+def test(img):
+    return type(img)
 
 q = Queue(connection=conn)
 
 def predict(inFileName):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
-    q.enqueue(run,weights='detection/best.pt', source=inFileName, project='') #run(weights='detection/best.pt', source=inFileName, project='')#
+    job = q.enqueue(test, cv2.imread(inFileName))
+    time.sleep(2)
+    print(job.get_status(refresh=True))
+    print(job.exc_info)
+    print(job.result)
+    #q.enqueue(run,weights='detection/best.pt', source=inFileName, project='') #run(weights='detection/best.pt', source=inFileName, project='')#
     print("\n\n\n\nfinished predicting")
     
 
@@ -181,7 +191,6 @@ app= Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db' #4/is absolute path
 app.config['IMAGE_UPLOADS'] = 'uploads' #4/is absolute path
 app.config['OUTPUT_NAME'] = 'output'
-app.config['WORKER_DYNO'] = 'redis://redistogo:685caa9f481ac58d55a51c8a62a129c1@sole.redistogo.com:9855/'
 #MYDIR = os.path.dirname(__file__)
 #print("\n\n\n"+MYDIR+"this one <-----\n\n\n")
 
@@ -205,16 +214,16 @@ def index():
     if request.method == 'POST':
         if request.files:
             image = request.files['image'] #this is where you get the python input with id content
-            image.save(os.path.join(app.config['WORKER_DYNO'],app.config['IMAGE_UPLOADS'],image.filename))#svg.filename))
+            image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))#svg.filename))
             app.config['OUTPUT_NAME'] = image.filename[:-4]
             try:
-                inFileName = os.path.join(app.config['WORKER_DYNO'],app.config['IMAGE_UPLOADS'],image.filename)
+                inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
                 #outFileName = os.path.join(app.config['IMAGE_UPLOADS'],'output.svg')
                 predict(inFileName)
                 #return redirect(request.url)
                 download=True
-            except:
-                print('There was an issue running cell detection')
+            except Exception as ex:
+                print('There was an issue running cell detection:', ex)
             return render_template('index.html', download=download)#redirect(request.url) 
         #new_task = ToDo(content=fileName)
         
@@ -232,7 +241,7 @@ def index():
     
 @app.route('/download')
 def download_file():
-    p = os.path.join(app.config['WORKER_DYNO'],'uploads',app.config['OUTPUT_NAME']+'.svg')
+    p = os.path.join('uploads',app.config['OUTPUT_NAME']+'.svg')
     return send_file(p,as_attachment=True)
 
 
