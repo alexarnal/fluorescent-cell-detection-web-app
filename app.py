@@ -1,16 +1,20 @@
 from flask import Flask, render_template, url_for, request, redirect, send_file
-from segmentation.unet_predict import run
 from flask_sqlalchemy import SQLAlchemy
+from detection.detect import run
 from datetime import datetime
 import shutil
+import glob
 import os 
 
-os.chdir('Documents/web-app-fluorescent-fiber-segmentation/')
+#os.chdir('Documents/web-app-fluorescent-cell-detection/') #uncomment and modify if you'd like to call the app.py file from a different folder
 
 def predict(inFileName, channel):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
-    run(img_path=inFileName, channel=channel)
+    run(weights='detection/best.pt', source=inFileName, project='', channel=channel)
     os.remove(inFileName)
+    shutil.rmtree('exp') 
+    for path in glob.glob("exp*"):
+        shutil.rmtree(path)
     print("\n\n\n\nfinished predicting")
 
 app= Flask(__name__)
@@ -23,7 +27,6 @@ class ToDo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(200),nullable=False)
     date_created = db.Column(db.DateTime, default = datetime.utcnow)
-
     def __repr__(self):
         return '<Tsk %r>' %self.id
 
@@ -38,13 +41,13 @@ def index():
             for image in request.files.getlist('image[]'): #this is where you get the python input with id content
                 channel = request.form['channel']
                 image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
-                app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0]
+                app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0] 
                 try:
                     inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
                     predict(inFileName, channel)
+                    download=True
                 except Exception as ex:
                     print('There was an issue running cell detection:', ex)
-            download=True #switch to allow for download page to appear
             if len(request.files.getlist('image[]'))>1:
                 print('uploaded multiple')
                 multiple=True
@@ -54,7 +57,7 @@ def index():
             return render_template('index.html', download=download, multiple=multiple)
     else:
         return render_template('index.html', download=download, multiple=multiple)
- 
+
 @app.route('/download_file')
 def download_file():
     p = os.path.join('uploads',app.config['OUTPUT_NAME']+'.svg')
@@ -71,13 +74,12 @@ def again():
     multiple=False
     return render_template('index.html', download=download, multiple=multiple)
 
-
 import webbrowser
 from threading import Timer
 
 def open_browser():
-    webbrowser.open_new('http://127.0.0.1:2000/') 
+    webbrowser.open_new('http://127.0.0.1:3000/') 
 
 if __name__ == '__main__':
     Timer(1,open_browser).start(); 
-    app.run(port=2000)
+    app.run(port=3000)
