@@ -32,6 +32,7 @@ from pathlib import Path
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
+import numpy as np
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -49,7 +50,7 @@ from utils.torch_utils import select_device, time_sync
 def startSVG(fileName,dims):
     f = open(fileName+".svg", "w")
     f.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s">\n'%(dims[0], dims[1]))
-    f.write('<rect width="%s" height="%s" style="fill:none"/>\n'%(dims[0], dims[1]))
+    f.write('<rect width="%s" height="%s" style="fill:none; stroke:#000000; stroke-width:1px"/>\n'%(dims[0], dims[1]))
     f.close()
 
 def saveCoordsSVG(x,y,fileName): 
@@ -62,6 +63,26 @@ def endSVG(fileName):
     f = open(fileName+".svg", "a")
     f.write('</svg>')
     f.close()   
+
+def verifyChannel(img, channel):
+    print(img.shape)
+    temp = np.zeros((3,img.shape[1],img.shape[2]))
+    if len(img.shape)==4: img = img[0:3,:,:]
+    if len(img.shape)==3:
+        print(f'Using channel: {channel}')
+        if channel == 'red':
+            for i in range(3): temp[i,:,:] = img[0,:,:]
+        elif channel == 'green':
+            for i in range(3): temp[i,:,:] = img[1,:,:]
+        elif channel == 'blue':
+            for i in range(3): temp[i,:,:] = img[2,:,:]
+        elif channel == 'gray':
+            print('\tDetected RGB image; converting to Gray Scale')
+            for i in range(3): temp[i,:,:] = np.mean(img, axis=0)
+    elif len(img.shape)==2:
+        print(f'Detected a Gray Scale image')
+        for i in range(3): temp[i,:,:] = img
+    return temp
 
 @torch.no_grad()
 def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
@@ -90,12 +111,13 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=True,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
+        channel='gray'
         ):
     save_svg=True
     source = str(source)
-    print(source)
+    #print(source)
     refImg = cv2.imread(source)
-    print(refImg.shape)
+    print(f'Loaded image of size: {refImg.shape}')
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
     is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
@@ -108,20 +130,20 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
-    print('load model')
+    print('Creating model instance and loading model weights')
     device = select_device(device)
     model = DetectMultiBackend(weights, device=device, dnn=dnn) #, data=data)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     imgsz = (refImg.shape[0:2][0],  refImg.shape[0:2][1])
     imgsz = check_img_size(imgsz, s=stride)  # check image size
-
+    
     # Half
     half &= (pt or jit or onnx or engine) and device.type != 'cpu'  # FP16 supported on limited backends with CUDA
     if pt or jit:
         model.model.half() if half else model.model.float()
 
     # Dataloader
-    print('load data')
+    print('Preparing data loaders')
     if webcam:
         view_img = check_imshow()
         cudnn.benchmark = True  # set True to speed up constant image size inference
@@ -137,6 +159,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
         t1 = time_sync()
+        im = verifyChannel(im, channel)
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
         im /= 255  # 0 - 255 to 0.0 - 1.0
@@ -146,7 +169,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dt[0] += t2 - t1
 
         # Inference
-        
         visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
         pred = model(im, augment=augment, visualize=visualize)
         t3 = time_sync()
@@ -156,11 +178,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         dt[2] += time_sync() - t3
 
-        # Second-stage classifier (optional)
-        # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-
         # Process predictions
-        print('process predictions')
+        print('Converting predictions to SVG format')
+        if save_svg:
+            svg_path = 'uploads/' + Path(path).stem
+            startSVG(svg_path,im0s.shape[0:2][::-1])
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
@@ -171,7 +193,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # im.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # im.txt
-            svg_path = 'uploads/' + p.stem
+            
             s += '%gx%g ' % im.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
@@ -186,8 +208,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
-                if save_svg:
-                    startSVG(svg_path,im0.shape[0:2][::-1])
+                
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -205,36 +226,36 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         annotator.box_label(xyxy, label, color=colors(c, True))
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                if save_svg:
-                    endSVG(svg_path)
-            print('finished writing')
+        if save_svg:
+            endSVG(svg_path)
+            print(f'Finished writing to {svg_path}\d')
             # Print time (inference-only)
-            LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
+            #LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
 
-            # Stream results
-            im0 = annotator.result()
-            if view_img:
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
+        # Stream results
+        im0 = annotator.result()
+        if view_img:
+            cv2.imshow(str(p), im0)
+            cv2.waitKey(1)  # 1 millisecond
 
-            # Save results (image with detections)
-            if save_img:
-                if dataset.mode == 'image':
-                    cv2.imwrite(save_path, im0)
-                else:  # 'video' or 'stream'
-                    if vid_path[i] != save_path:  # new video
-                        vid_path[i] = save_path
-                        if isinstance(vid_writer[i], cv2.VideoWriter):
-                            vid_writer[i].release()  # release previous video writer
-                        if vid_cap:  # video
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        else:  # stream
-                            fps, w, h = 30, im0.shape[1], im0.shape[0]
-                        save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-                    vid_writer[i].write(im0)
+        # Save results (image with detections)
+        if save_img:
+            if dataset.mode == 'image':
+                cv2.imwrite(save_path, im0)
+            else:  # 'video' or 'stream'
+                if vid_path[i] != save_path:  # new video
+                    vid_path[i] = save_path
+                    if isinstance(vid_writer[i], cv2.VideoWriter):
+                        vid_writer[i].release()  # release previous video writer
+                    if vid_cap:  # video
+                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    else:  # stream
+                        fps, w, h = 30, im0.shape[1], im0.shape[0]
+                    save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
+                    vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                vid_writer[i].write(im0)
 
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image

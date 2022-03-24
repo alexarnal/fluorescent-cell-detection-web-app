@@ -1,199 +1,22 @@
 from flask import Flask, render_template, url_for, request, redirect, send_file
+from segmentation.unet_predict import run
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import shutil
 import os 
 
-'''import re
-import sys
-import base64
-import numpy as np
-from io import BytesIO
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from scipy.ndimage import gaussian_filter
-from scipy.stats import multivariate_normal, gaussian_kde
-from matplotlib import cm
-from matplotlib.colors import ListedColormap
-from glob import glob'''
+os.chdir('Documents/web-app-fluorescent-fiber-segmentation/')
 
-'''#slice
-import matplotlib.pyplot as plt
-import numpy as np
-import shutil
-import sys
-import cv2
-#import os
-
-def slice(fileName):
-    print("\nSet Up Slices Folder")    
-    dataDir = ''
-    processedDir = dataDir+"slices/"
-    try:
-        shutil.rmtree(processedDir)
-    except:
-        print(processedDir, "does not exist")
-    os.mkdir(processedDir)
-
-    print("\nLoading Data") 
-    print(fileName)
-    imageName = fileName
-    temp = cv2.imread(dataDir+imageName)[:,:,0] #green channel
-    print(type(temp), temp.dtype, np.max(temp), temp.shape)
-    image = np.zeros((temp.shape[0],temp.shape[1],3))
-    image[:,:,0]=temp
-    image[:,:,1]=temp
-    image[:,:,2]=temp
-
-    print("\nSplitting & Saving Data\n\n")   
-    frameSize = 256
-    #cellSize = 36
-    stride = frameSize
-    indx = 0
-    for row in range(0, image.shape[0]-frameSize, stride):
-        for col in range(0, image.shape[1]-frameSize, stride):
-            #print(row,col)
-            frm = np.array([row,row+frameSize,col,col+frameSize]).astype('int')
-            #print(frm)
-            imageName = processedDir + "%s"%indx + '.png'
-            print(f"Saving {imageName}: {image[frm[0]:frm[1],frm[2]:frm[3]].shape}")
-            cv2.imwrite(imageName, image[frm[0]:frm[1],frm[2]:frm[3]])  #plt.imsave(processedDir + imageName + '.png',image[frm[0]:frm[1],frm[2]:frm[3]]) #, cmap='gray')
-            indx+=1
-            #print(indx)
-'''
-
-
-#detect
-from detection.detect import run
-
-'''#stitch
-#import matplotlib.pyplot as plt
-#import numpy as np
-#import shutil
-#import sys
-#import os
-import re
-
-def getYOLODataFromTXT(fileName,scale):
-    file = open(fileName,'r')
-    fileContent = file.readlines()
-    file.close()
-    #fileContent = fileContent.split('\n')
-    cl,x,y,w,h,conf = [],[],[],[],[],[]
-    for i,line in enumerate(fileContent): 
-        if line == "": continue
-        #print(line.split(' '))
-        cl.append(int(line.split(' ')[0]))
-        x.append(float(line.split(' ')[1])*scale)
-        y.append(float(line.split(' ')[2])*scale)
-        w.append(float(line.split(' ')[3])*scale)
-        h.append(float(line.split(' ')[4])*scale)
-        conf.append(float(line.split(' ')[5]))
-    return np.array(cl), np.array(x), np.array(y), np.array(w), np.array(h), np.array(conf)
-
-def startSVG(fileName,dims):
-    f = open(fileName+".svg", "w")
-    f.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s">\n'%(dims[0], dims[1]))
-    f.write('<rect width="%s" height="%s" style="fill:none; stroke-width:1px"/>\n'%(dims[0], dims[1]))
-    f.close()
-
-def saveCoordsSVG(x,y,fileName,indx): 
-    f = open(fileName+".svg", "a")
-    for i in range(x.shape[0]):
-        f.write('<circle cx="%s" cy="%s" r="%s" style="fill:#000000"/>\n'%(x[i], y[i], 3))
-    f.close()
-
-def endSVG(fileName):
-    f = open(fileName+".svg", "a")
-    f.write('</svg>')
-    f.close()    
-
-def stitch(inFileName):  
-    dataDir = ''
-    processedDir = dataDir+"stitched/"
-    try:
-        shutil.rmtree(processedDir)
-    except:
-        print(processedDir, "does not exist")
-    os.mkdir(processedDir)
-
-    print("\nLoading Data") 
-    print(dataDir+inFileName)
-    #imageName = inFileName.copy()
-    temp = cv2.imread(dataDir+inFileName)[:,:,1] #green channel
-    print(type(temp), temp.dtype, np.max(temp), temp.shape)
-    image = np.zeros((temp.shape[0],temp.shape[1],3))
-    image[:,:,0]=temp
-    image[:,:,1]=temp
-    image[:,:,2]=temp
-    #canvas = np.zeros((temp.shape[0],temp.shape[1],3))
-    
-    #imageFolder = 'images' #listdir(dataDir)
-    labelFolder = 'exp/labels/'
-
-    #onlyImgFiles = [f for f in os.listdir(dataDir+imageFolder) if os.path.isfile(os.path.join(dataDir+imageFolder, f))]
-    #onlyImgFiles.sort(key=lambda f: int(re.sub('\D', '', f)))
-
-    onlyLblFiles = [f for f in os.listdir(dataDir+labelFolder) if os.path.isfile(os.path.join(dataDir+labelFolder, f))]
-    onlyLblFiles.sort(key=lambda f: int(re.sub('\D', '', f)))
-
-    print("\nStitching based on reference image")   
-    frameSize = 256
-    #cellSize = 36
-    stride = frameSize
-    indx = 0
-    imageDims = [image.shape[1],image.shape[0]]
-    startSVG(processedDir + "stitched",imageDims)
-    for row in range(0, image.shape[0]-frameSize, stride):
-        for col in range(0, image.shape[1]-frameSize, stride):
-            if os.path.isfile(dataDir+labelFolder+str(indx)+".txt") == False: 
-                indx+=1
-                continue
-            #frm = np.array([row,row+frameSize,col,col+frameSize]).astype('int')
-            #labelName = "labels/train/%s"%trainCount
-            #canvas[frm[0]:frm[1],frm[2]:frm[3]] += plt.imread(dataDir+'images/'+str(indx)+".png")
-            #trainCount+=1
-            c,x,y,w,h,conf=getYOLODataFromTXT(dataDir+labelFolder+str(indx)+".txt",frameSize)
-            
-            #account for relative position of patch in large image
-            x += col
-            y += row
-            #saveCoordsTXT(c, x, y, w, h, processedDir + "stitched",indx)
-            saveCoordsSVG(x, y, processedDir + "stitched",indx)
-            indx+=1
-        #if valCount == 10: break
-    endSVG(processedDir + "stitched")
-
-    print("Done!")'''
-
-#main
-from rq import Queue
-from worker import conn
-import cv2
-import time
-
-def test(img):
-    return type(img)
-
-q = Queue(connection=conn)
-
-def predict(inFileName):
+def predict(inFileName, channel):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
-    job = q.enqueue(test, cv2.imread(inFileName))
-    time.sleep(2)
-    print(job.get_status(refresh=True))
-    print(job.exc_info)
-    print(job.result)
-    #q.enqueue(run,weights='detection/best.pt', source=inFileName, project='') #run(weights='detection/best.pt', source=inFileName, project='')#
+    run(img_path=inFileName, channel=channel)
+    os.remove(inFileName)
     print("\n\n\n\nfinished predicting")
-    
 
 app= Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db' #4/is absolute path
-app.config['IMAGE_UPLOADS'] = 'uploads' #4/is absolute path
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+app.config['IMAGE_UPLOADS'] = 'uploads'
 app.config['OUTPUT_NAME'] = 'output'
-#MYDIR = os.path.dirname(__file__)
-#print("\n\n\n"+MYDIR+"this one <-----\n\n\n")
-
 db = SQLAlchemy(app)
 
 class ToDo(db.Model):
@@ -207,48 +30,54 @@ class ToDo(db.Model):
 @app.route('/', methods=['POST','GET']) #GET is default without this method parameter
 def index():
     download=False
+    multiple = False
     for f in os.listdir(app.config['IMAGE_UPLOADS']):
-        #if not f.endswith(".bak"):
-        #    continue
         os.remove(os.path.join(app.config['IMAGE_UPLOADS'], f))
     if request.method == 'POST':
         if request.files:
-            image = request.files['image'] #this is where you get the python input with id content
-            image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))#svg.filename))
-            app.config['OUTPUT_NAME'] = image.filename[:-4]
-            try:
-                inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
-                #outFileName = os.path.join(app.config['IMAGE_UPLOADS'],'output.svg')
-                predict(inFileName)
-                #return redirect(request.url)
-                download=True
-            except Exception as ex:
-                print('There was an issue running cell detection:', ex)
-            return render_template('index.html', download=download)#redirect(request.url) 
-        #new_task = ToDo(content=fileName)
-        
-        #try:
-        #    db.session.add(svg.filename)
-        #    db.session.commit()
-        #    return redirect('/')
-        #except:
-        #    return "There was an issue adding your task"
-        
+            for image in request.files.getlist('image[]'): #this is where you get the python input with id content
+                channel = request.form['channel']
+                image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
+                app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0]
+                try:
+                    inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
+                    predict(inFileName, channel)
+                except Exception as ex:
+                    print('There was an issue running cell detection:', ex)
+            download=True #switch to allow for download page to appear
+            if len(request.files.getlist('image[]'))>1:
+                print('uploaded multiple')
+                multiple=True
+                shutil.make_archive('download', 'zip', 'uploads')
+                return render_template('index.html', download=download, multiple=multiple)
+            multiple=False
+            return render_template('index.html', download=download, multiple=multiple)
     else:
-        #tasks = ToDo.query.order_by(ToDo.date_created).all()
-        
-        return render_template('index.html', download=download)#tasks=tasks, )
-    
-@app.route('/download')
+        return render_template('index.html', download=download, multiple=multiple)
+ 
+@app.route('/download_file')
 def download_file():
     p = os.path.join('uploads',app.config['OUTPUT_NAME']+'.svg')
     return send_file(p,as_attachment=True)
 
+@app.route('/download_zip')
+def download_zip():
+    p = os.path.join('download.zip')
+    return send_file(p,as_attachment=True)
+
+@app.route('/')
+def again():
+    download=False
+    multiple=False
+    return render_template('index.html', download=download, multiple=multiple)
+
+
+import webbrowser
+from threading import Timer
+
+def open_browser():
+    webbrowser.open_new('http://127.0.0.1:2000/') 
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    
-    
-    
-    
-    
+    Timer(1,open_browser).start(); 
+    app.run(port=2000)
