@@ -78,7 +78,7 @@ def verifyChannel(img, channel):
             for i in range(3): temp[i,:,:] = img[2,:,:]
         elif channel == 'gray':
             print('\tDetected RGB image; converting to Gray Scale')
-            for i in range(3): temp[i,:,:] = np.mean(img, axis=0)
+            for i in range(3): temp[i,:,:] = np.max(img, axis=0)
     elif len(img.shape)==2:
         print(f'Detected a Gray Scale image')
         for i in range(3): temp[i,:,:] = img

@@ -18,22 +18,13 @@ def predict(inFileName, channel):
     print("\n\n\n\nfinished predicting")
 
 app= Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-app.config['IMAGE_UPLOADS'] = 'uploads'
-app.config['OUTPUT_NAME'] = 'output'
-db = SQLAlchemy(app)
-
-class ToDo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200),nullable=False)
-    date_created = db.Column(db.DateTime, default = datetime.utcnow)
-    def __repr__(self):
-        return '<Tsk %r>' %self.id
+app.config['IMAGE_UPLOADS'] = 'uploads' # folder where to load images and store program outputs
+app.config['OUTPUT_NAME'] = 'output' # will be overwritten by every filename
 
 @app.route('/', methods=['POST','GET']) #GET is default without this method parameter
 def index():
-    download=False
-    multiple = False
+    download = False # indicates if download of program outputs is possible
+    multiple = False # indicates if user uploaded multiple files 
     for f in os.listdir(app.config['IMAGE_UPLOADS']):
         os.remove(os.path.join(app.config['IMAGE_UPLOADS'], f))
     if request.method == 'POST':
@@ -41,7 +32,7 @@ def index():
             for image in request.files.getlist('image[]'): #this is where you get the python input with id content
                 channel = request.form['channel']
                 image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
-                app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0] 
+                app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0] #assumes file names do not contain periods other than for extensions
                 try:
                     inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
                     predict(inFileName, channel)
