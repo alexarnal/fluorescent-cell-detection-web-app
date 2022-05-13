@@ -67,8 +67,8 @@ def endSVG(fileName):
 def verifyChannel(img, channel):
     print(img.shape)
     temp = np.zeros((3,img.shape[1],img.shape[2]))
-    if len(img.shape)==4: img = img[0:3,:,:]
     if len(img.shape)==3:
+        if img.shape[2]==4: img=img[:,:,0:3]
         print(f'Using channel: {channel}')
         if channel == 'red':
             for i in range(3): temp[i,:,:] = img[0,:,:]
