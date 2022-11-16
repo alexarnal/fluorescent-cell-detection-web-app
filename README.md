@@ -25,12 +25,12 @@ Once you download the repo and install the dependencies, run `python app.py` and
 
 ## Hardware & Software
 
-MacBook Pro (16-inch, 2019) - macOS 11.7
-Chrome Version 107.0.5304.110 (Official Build) (x86_64)
-Safari Version 16.0 (16614.1.25.9.10, 16614)
-Python Version 3.9.12
+* MacBook Pro (16-inch, 2019) - macOS 11.7
+* Chrome Version 107.0.5304.110 (Official Build) (x86_64)
+* Safari Version 16.0 (16614.1.25.9.10, 16614)
+* Python Version 3.9.12
 
 ## To Do
 
-Validate colocalization method 
-Add online functionality
+* Validate colocalization method 
+* Add online functionality
