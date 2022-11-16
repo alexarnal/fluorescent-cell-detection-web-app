@@ -64,7 +64,7 @@ def run(filenames):
     path = './uploads/'
     print("You've successfuly loaded the colocalization script")
     print(f'These are the loaded filenames:\n{filenames}')
-    svg_files = os.listdir(path)
+    svg_files = [f for f in os.listdir(path) if '.svg' in f]
     coords, view_boxes, heights, widths, lengths = [], [], [], [], [0]
     for f in svg_files:
         c, vb, h, w = getCoordsFromSVG(path+f)

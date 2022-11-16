@@ -9,10 +9,11 @@ import os
 
 #os.chdir('Documents/web-app-fluorescent-cell-detection/') #uncomment and modify if you'd like to call the app.py file from a different folder
 
-def predict(inFileName, confidence):
+def predict(inFileName, confidence, output_svg, output_csv):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
     run(weights='detection/best.pt', source=inFileName, 
-        project='', conf_thres = confidence)
+        project='', conf_thres = confidence, 
+        save_svg = output_svg, save_csv = output_csv)
     os.remove(inFileName)
     shutil.rmtree('exp') 
     for path in glob.glob("exp*"):
@@ -41,19 +42,26 @@ def index():
     if request.method == 'POST':
         if request.files:
             image_names = [] #need to save image dims to check if we can run colocalization
+            try:
+                output_svg = request.form['output-svg']
+            except:
+                output_svg = False
+            try:
+                output_csv = request.form['output-csv']
+            except:
+                output_csv = False
+            confidence = request.form['confidence']
             for image in request.files.getlist('image[]'): #this is where you get the python input with id content
                 print("Running Detection Algo")
-                confidence = request.form['confidence']
                 image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
                 app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0] #assumes file names do not contain periods other than for extensions
                 try:
                     inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
-                    predict(inFileName, confidence)
+                    predict(inFileName, confidence, output_svg, output_csv)
                     download=True
                 except Exception as ex:
                     print('There was an issue running cell detection:', ex)
                 image_names.append(image.filename)
-            #print('Running Colocalization Annalysis')
             colocalize = request.form['colocalize']
             #image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
             if colocalize == 'enable':

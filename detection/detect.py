@@ -62,7 +62,17 @@ def saveCoordsSVG(x,y,fileName):
 def endSVG(fileName):
     f = open(fileName+".svg", "a")
     f.write('</svg>')
-    f.close()   
+    f.close() 
+
+def startCSV(fileName):
+    f = open(fileName+".csv", "w")
+    f.write('id, center x, center y, width, height, confidence\n')
+    f.close()
+
+def saveCoordsCSV(id,x,y,w,h,conf,fileName): 
+    f = open(fileName+".csv", "a")
+    f.write(f'{id},{x},{y},{w},{h},{conf}\n')
+    f.close()
 
 def verifyChannel(img):
     #print(img.shape)
@@ -102,10 +112,12 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=True,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
-        colocalize='enable'
+        save_svg = False,
+        save_csv = False
         ):
     conf_thres = float(conf_thres)
-    save_svg=True
+    #save_svg=True
+    #save_csv=True
     source = str(source)
     #print(source)
     refImg = cv2.imread(source)
@@ -176,9 +188,12 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
         # Process predictions
         print('Converting predictions to SVG format')
-        if save_svg:
+        if save_svg != False:
             svg_path = 'uploads/' + Path(path).stem
             startSVG(svg_path,im0s.shape[0:2][::-1])
+        if save_csv != False:
+            csv_path = 'uploads/' + Path(path).stem
+            startCSV(csv_path)
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
@@ -216,6 +231,10 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         saveCoordsSVG(xywh[0]*im0.shape[1],xywh[1]*im0.shape[0],svg_path) #print(len(xywh), xywh[0])
                     
+                    if save_csv: 
+                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        saveCoordsCSV(cls, xywh[0]*im0.shape[1],xywh[1]*im0.shape[0],xywh[2]*im0.shape[1],xywh[3]*im0.shape[0],conf,csv_path)
+
                     if save_img or save_crop or view_img:  # Add bbox to image
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
