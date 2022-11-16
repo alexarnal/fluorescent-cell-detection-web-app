@@ -28,7 +28,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
-
+import pdb
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
@@ -64,23 +64,14 @@ def endSVG(fileName):
     f.write('</svg>')
     f.close()   
 
-def verifyChannel(img, channel):
-    print(img.shape)
+def verifyChannel(img):
+    #print(img.shape)
     temp = np.zeros((3,img.shape[1],img.shape[2]))
     if len(img.shape)==3:
-        if img.shape[2]==4: img=img[:,:,0:3]
-        print(f'Using channel: {channel}')
-        if channel == 'red':
-            for i in range(3): temp[i,:,:] = img[0,:,:]
-        elif channel == 'green':
-            for i in range(3): temp[i,:,:] = img[1,:,:]
-        elif channel == 'blue':
-            for i in range(3): temp[i,:,:] = img[2,:,:]
-        elif channel == 'gray':
-            print('\tDetected RGB image; converting to Gray Scale')
+        if img.shape[0]==4: img=img[0:3,:,:]
+        if img.shape[0]==3: 
             for i in range(3): temp[i,:,:] = np.max(img, axis=0)
     elif len(img.shape)==2:
-        print(f'Detected a Gray Scale image')
         for i in range(3): temp[i,:,:] = img
     return temp
 
@@ -111,8 +102,9 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=True,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
-        channel='gray'
+        colocalize='enable'
         ):
+    conf_thres = float(conf_thres)
     save_svg=True
     source = str(source)
     #print(source)
@@ -159,9 +151,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
         t1 = time_sync()
-        im = verifyChannel(im, channel)
+        
+        im = verifyChannel(im)
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
+        
         im /= 255  # 0 - 255 to 0.0 - 1.0
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
@@ -169,12 +163,14 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dt[0] += t2 - t1
 
         # Inference
+        print('Inferencing')
         visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
         pred = model(im, augment=augment, visualize=visualize)
         t3 = time_sync()
         dt[1] += t3 - t2
 
         # NMS
+        print('Non-Max Supression')
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         dt[2] += time_sync() - t3
 

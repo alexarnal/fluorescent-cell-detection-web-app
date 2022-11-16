@@ -9,34 +9,115 @@
 <br><br>
 <div class="container">
     <div class="jumbotron">
+
         <h1>Fluorescent Cell Detection</h1>
-        <p>This application takes a PNG (.png) or TIFF (.tif) file of fluorescent cells and marks cell locations. It then outputs the cell locations as an SVG file for download.</p>
+        <p>
+            This application runs the object detector YOLOv5 on images to 
+            locate immunofluorescently-labeled cells in tissue photographed 
+            in darkfield. It outputs the coordinates of all detected cells 
+            as an SVG file for download. You may also upload a series of 
+            single-channel images for colocalization analysis. To run analyses
+            of the peptides pERK, DBH, and ChAT, input the single-channel 
+            image for each peptide. The program will run the object detection
+            algorithm on each image and use the detection coordinates to 
+            estimate colocalization of pERK-DBH, pERK-ChAT, DBH-ChAT, and 
+            pERK-DBH-ChAT, outputting an SVG for alignment with your merged 
+            images.
+        </p>
+        <p>
+            Note: images must have the same dimensions to analyze properly. 
+        </p>
         
         {% if download == False %}
         <form action="/" method="POST" enctype="multipart/form-data">
-            <h3>1. Select your image file</h3>
+            <h3>1. Select your image file(s)</h3>
             <br>
-            <input type="file" name="image[]" id="image[]" multiple='' accept=".tif,.png,.tiff" required>
-            <br>
-            <h3>2. Select appropiate parameters</h3>
-            <p>Choose the channel you want to analyze if using a color image, or select gray if image is a gray scale image.</p><p style="font-size:12pt">Note, "Gray" is the default parameter; if given a color image, the program will convert it to a gray scale image before processing.</p>
-            <input style="margin-left:  0px;" name="channel" type="radio" id="red"   value="red"         > Red </input>
-            <input style="margin-left: 16px;" name="channel" type="radio" id="green" value="green"       > Green </input>
-            <input style="margin-left: 16px;" name="channel" type="radio" id="blue"  value="blue"        > Blue </input>
-            <input style="margin-left: 16px;" name="channel" type="radio" id="gray"  value="gray" checked> Gray </label>
+            <input style="margin-left: 16px;" type="file" name="image[]" 
+                   id="image[]" multiple='' accept=".tif,.png,.tiff" required>
             <br><br>
-            <button type="submit" class="btn btn-warning">Run</button> <!-- id="compute" onclick="getDensityMap()" -->
+
+            <h3>2. Determine Confidence Level</h3>
+            <p> 
+                Specify the minimum confidence level for detections
+                (between 0 and 1). 
+            </p>
+            <ul style="font-size:12pt">
+                <li>
+                    Default confidence level was determined optimally
+                    on a set of images used to validate the object detector 
+                    during training.
+                </li>
+                <li>
+                    A lower confidence will produce more predictions at the 
+                    risk of more false positives.
+                </li>
+                <li>
+                    A higher confidence will produce less predictions at the 
+                    risk of more false negatives.
+                </li>
+            </ul> 
+            <br>
+            <input style="margin-left: 16px;" name="confidence" type=number 
+                   min=0 max=1 step=0.01 value="0.33">
+            <br><br>
+            
+            <h3>3. Confirm Colocalization Analysis</h3>
+            <p> 
+                Colocalization Analysis is the default behavior when uploading
+                multiple images. You may disable it to run the detetction 
+                algorithm on multiple images without colocalization analysis.
+            </p>
+            <input style="margin-left: 16px;" name="colocalize" 
+                   type="radio" id="enable"  value="enable" checked>
+                   Enable Colocalization Analysis </label> <br>
+            <input style="margin-left: 16px;" name="colocalize" 
+                   type="radio" id="disable"  value="disable">
+                   Disable Colocalization Analysis </label>
+            <br><br>
+            
+            <h3>4. Output Format</h3>
+            <p> 
+                Default output format is an SVG file with detected centroids 
+                as circle elements which can be aligned with the original input
+                image in a graphics software like Adobe Illustrator. You may 
+                also choose to export a CSV file of the detections which 
+                includes the centroid coordinate, height, width and 
+                confidence value for each prediction.
+            </p>
+            <input style="margin-left: 16px;" name="colocalize" 
+                   type="checkbox" id="SVG"  value="SVG" checked>
+                   Scalable Vector Graphics </label> <br>
+            <input style="margin-left: 16px;" name="colocalize" 
+                   type="checkbox" id="CSV"  value="CSV">
+                   Comma-Separated Values </label>
+            <br><br><br><br>
+            
+            <button type="submit" class="btn btn-warning">Run</button>
+            
         </form>
-        <br><br>
+
         {% elif multiple == False %}
         <form action="/" method="GET">
-            <button type="submit"  class="btn btn-success"><a href="{{url_for('download_file')}}" style="text-decoration:none;color: #FFFFFF">Download</a></button>
-            <button type="submit"  class="btn btn-warning"><a href="{{url_for('again')}}" style="text-decoration:none;color: #FFFFFF">Run Another</a></button>
+            <button type="submit"  class="btn btn-success">
+                <a href="{{url_for('download_file')}}" 
+                style="text-decoration:none;color: #FFFFFF">Download</a>
+            </button>
+            <button type="submit"  class="btn btn-warning">
+                <a href="{{url_for('again')}}" 
+                style="text-decoration:none;color: #FFFFFF">Run Another</a>
+            </button>
         </form>
+
         {% elif multiple == True %}
         <form action="/" method="GET">
-            <button type="submit"  class="btn btn-success"><a href="{{url_for('download_zip')}}" style="text-decoration:none;color: #FFFFFF">Download</a></button>
-            <button type="submit"  class="btn btn-warning"><a href="{{url_for('again')}}" style="text-decoration:none;color: #FFFFFF">Run Another</a></button>
+            <button type="submit"  class="btn btn-success">
+                <a href="{{url_for('download_zip')}}" 
+                style="text-decoration:none;color: #FFFFFF">Download</a>
+            </button>
+            <button type="submit"  class="btn btn-warning">
+                <a href="{{url_for('again')}}" 
+                style="text-decoration:none;color: #FFFFFF"> Run Another</a>
+            </button>
         </form>
         <br><br>
         {% endif  %}

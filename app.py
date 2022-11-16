@@ -1,6 +1,7 @@
 from flask import Flask, render_template, url_for, request, redirect, send_file
 from flask_sqlalchemy import SQLAlchemy
 from detection.detect import run
+from detection.colocalize import run as c_run
 from datetime import datetime
 import shutil
 import glob
@@ -8,14 +9,24 @@ import os
 
 #os.chdir('Documents/web-app-fluorescent-cell-detection/') #uncomment and modify if you'd like to call the app.py file from a different folder
 
-def predict(inFileName, channel):
+def predict(inFileName, confidence):
     print(f"\n\n\n\nRunning Prediction on {inFileName}")
-    run(weights='detection/best.pt', source=inFileName, project='', channel=channel)
+    run(weights='detection/best.pt', source=inFileName, 
+        project='', conf_thres = confidence)
     os.remove(inFileName)
     shutil.rmtree('exp') 
     for path in glob.glob("exp*"):
         shutil.rmtree(path)
     print("\n\n\n\nfinished predicting")
+
+def colocal_anaylsis(inFileNames):
+    print(f"\n\n\n\nRunning Colocalization Analysis on {len(inFileNames)} files")
+    c_run(inFileNames)
+    '''os.remove(inFileNames)
+    shutil.rmtree('exp') 
+    for path in glob.glob("exp*"):
+        shutil.rmtree(path)'''
+    print(f"finished colocalizing {len(inFileNames)} files")
 
 app= Flask(__name__)
 app.config['IMAGE_UPLOADS'] = 'uploads' # folder where to load images and store program outputs
@@ -29,16 +40,27 @@ def index():
         os.remove(os.path.join(app.config['IMAGE_UPLOADS'], f))
     if request.method == 'POST':
         if request.files:
+            image_names = [] #need to save image dims to check if we can run colocalization
             for image in request.files.getlist('image[]'): #this is where you get the python input with id content
-                channel = request.form['channel']
+                print("Running Detection Algo")
+                confidence = request.form['confidence']
                 image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
                 app.config['OUTPUT_NAME'] = os.path.splitext(image.filename)[0] #assumes file names do not contain periods other than for extensions
                 try:
                     inFileName = os.path.join(app.config['IMAGE_UPLOADS'],image.filename)
-                    predict(inFileName, channel)
+                    predict(inFileName, confidence)
                     download=True
                 except Exception as ex:
                     print('There was an issue running cell detection:', ex)
+                image_names.append(image.filename)
+            #print('Running Colocalization Annalysis')
+            colocalize = request.form['colocalize']
+            #image.save(os.path.join(app.config['IMAGE_UPLOADS'],image.filename))
+            if colocalize == 'enable':
+                try:
+                    colocal_anaylsis(image_names)
+                except Exception as ex:
+                    print('There was an issue running colocalization analysis:', ex)
             if len(request.files.getlist('image[]'))>1:
                 print('uploaded multiple')
                 multiple=True
